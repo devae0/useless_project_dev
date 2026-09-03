@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Git Golf: Tournament Championship Edition</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: radial-gradient(circle at 50% 30%, #0d2818 0%, #05140b 60%, #020704 100%);
+      color: #f0fdf4;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+      overflow: hidden;
+      user-select: none;
+      width: 100vw;
+      height: 100vh;
+    }
+
+    /* Screen-flash penalty overlay */
+    #penalty-overlay {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(239, 68, 68, 0.4);
+      border: 6px solid #ef4444;
+      z-index: 50;
+      pointer-events: none;
+      display: none;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-shadow: 0 0 12px #000;
+      backdrop-filter: blur(5px);
+    }
+    #penalty-title {
+      font-size: 32px;
+      font-weight: 900;
+      color: #fee2e2;
+      letter-spacing: 2px;
+    }
+    #penalty-sub {
+      font-size: 16px;
+      color: #fca5a5;
+      margin-top: 8px;
+      font-family: monospace;
+    }
+
+    /* Subtle Cinematic Vignette */
+    body::after {
+      content: " ";
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: radial-gradient(circle, transparent 65%, rgba(0, 0, 0, 0.7) 100%);
+      pointer-events: none;
+      z-index: 20;
+    }
+
+    /* Broadcast Tournament Top Bar */
+    #scorecard-hud {
+      position: absolute;
+      top: 18px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 25;
+      pointer-events: none;
+      background: linear-gradient(135deg, rgba(8, 28, 18, 0.92) 0%, rgba(4, 18, 11, 0.95) 100%);
+      padding: 14px 28px;
+      border-radius: 12px;
+      border: 1px solid rgba(74, 222, 128, 0.35);
+      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.6), 0 0 20px rgba(34, 197, 94, 0.15);
+      min-width: 520px;
+      backdrop-filter: blur(14px);
+    }
+
+    .top-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid rgba(74, 222, 128, 0.2);
+      padding-bottom: 8px;
+      margin-bottom: 8px;
+    }
+
+    .tournament-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      color: #4ade80;
+    }
+
+    .badge-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #22c55e;
+      box-shadow: 0 0 8px #22c55e;
+    }
+
+    .par-pill {
+      background: rgba(34, 197, 94, 0.18);
+      border: 1px solid rgba(74, 222, 128, 0.4);
+      padding: 2px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #86efac;
+    }
+
+    #stage-title {
+      font-size: 16px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    #instruction {
+      font-size: 12px;
+      color: #a7f3d0;
+      margin-top: 4px;
+      font-family: 'Consolas', monospace;
+    }
+
+    #metrics-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-top: 10px;
+      padding-top: 8px;
+      border-top: 1px dashed rgba(74, 222, 128, 0.2);
+      text-align: center;
+    }
+
+    .metric-item {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .metric-label {
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: #6ee7b7;
+      opacity: 0.8;
+    }
+
+    .metric-value {
+      font-size: 13px;
+      font-weight: 800;
+      color: #ffffff;
+      font-family: 'Consolas', monospace;
+      margin-top: 1px;
+    }
+
+    /* Pro Rangefinder Telemetry Box */
+    #rangefinder {
+      position: absolute;
+      bottom: 24px;
+      left: 24px;
+      z-index: 25;
+      pointer-events: none;
+      background: rgba(5, 20, 13, 0.9);
+      border: 1px solid rgba(74, 222, 128, 0.3);
+      border-left: 4px solid #22c55e;
+      border-radius: 8px;
+      padding: 14px 20px;
+      font-size: 11px;
+      line-height: 1.7;
+      color: #86efac;
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.5);
+      font-family: 'Consolas', monospace;
+      min-width: 220px;
+    }
+
+    .rangefinder-title {
+      font-size: 10px;
+      font-weight: 800;
+      color: #4ade80;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      border-bottom: 1px solid rgba(74, 222, 128, 0.2);
+      padding-bottom: 4px;
+      margin-bottom: 6px;
+    }
+
+    .val-accent { color: #ffffff; font-weight: 700; }
+    .val-warning { color: #f87171; font-weight: 700; }
+
+    #canvas-container {
+      width: 100%;
+      height: 100%;
+    }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+
+  <div id="penalty-overlay">
+    <div id="penalty-title">⚠️ MISS PENALTY (LINE SWAP)</div>
+    <div id="penalty-sub">SWAPPED PAIR #1 &bull; SINK HOLE TO RESTORE ALL</div>
+  </div>
+
+  <div id="scorecard-hud">
+    <div class="top-meta">
+      <div class="tournament-badge">
+        <span class="badge-dot"></span>
+        <span>PGA Tour Circuit // Git Open</span>
+      </div>
+      <div class="par-pill" id="hud-par">HOLE 1 &bull; PAR 1</div>
+    </div>
+    <div id="stage-title">Drive 1: Tee-off initialization</div>
+    <div id="instruction">Pull back and drive [ git init ] down the fairway</div>
+    <div id="metrics-row">
+      <div class="metric-item">
+        <span class="metric-label">To Pin</span>
+        <span class="metric-value" id="val-pin">18.0 YDS</span>
+      </div>
+      <div class="metric-item">
+        <span class="metric-label">Strokes</span>
+        <span class="metric-value" id="val-strokes" style="color: #4ade80;">1</span>
+      </div>
+      <div class="metric-item">
+        <span class="metric-label">Hazards</span>
+        <span class="metric-value" id="val-hazards">0 Bunkers</span>
+      </div>
+      <div class="metric-item">
+        <span class="metric-label">Swapped Pairs</span>
+        <span class="metric-value" id="val-swapped-count" style="color: #4ade80;">0 (CLEAN)</span>
+      </div>
+    </div>
+  </div>
+
+  <div id="rangefinder">
+    <div class="rangefinder-title">Laser Rangefinder &bull; Pro-X</div>
+    <div>BALL VELOCITY: <span class="val-accent" id="rf-vel">0.0 MPH</span></div>
+    <div>ELEVATION: <span class="val-accent" id="rf-elev">+0.0 FT</span></div>
+    <div>FAIRWAY PATH: <span class="val-accent" id="rf-path">CLEAR</span></div>
+    <div>CODE INTEGRITY: <span class="val-accent" id="rf-integrity">100% (NORMAL)</span></div>
+  </div>
+
+  <div id="canvas-container"></div>
+
+  <script>
+    const vscode = acquireVsCodeApi();
+
+    // Procedural Audio Engine
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    function playTone(freq, duration, type = 'sine', sweepTo = null) {
+      try {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        if (sweepTo) {
+          osc.frequency.exponentialRampToValueAtTime(sweepTo, audioCtx.currentTime + duration);
+        }
+        gain.gain.setValueAtTime(0.09, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+      } catch (e) {}
+    }
+
+    function soundGolfDrive() {
+      playTone(180, 0.08, 'triangle');
+      setTimeout(() => playTone(620, 0.14, 'sine', 120), 20);
+    }
+    function soundSandHit() {
+      playTone(130, 0.12, 'sawtooth');
+    }
+    function soundCupRattle() {
+      playTone(784, 0.08, 'sine');
+      setTimeout(() => playTone(1046, 0.16, 'triangle'), 80);
+      setTimeout(() => playTone(523, 0.22, 'sine'), 160);
+    }
+    function soundBuzzerPenalty() {
+      playTone(95, 0.35, 'sawtooth');
+      setTimeout(() => playTone(80, 0.45, 'sawtooth'), 120);
+    }
+
+    // Tournament Course Sequence
+    const courseHoles = [
+      { num: 1, par: 1, title: "Tee-Off Initialization", cmd: "git init", targetX: 18, wind: "2 MPH →", hazards: [] },
+      { num: 2, par: 1, title: "Stage Across The Rough", cmd: "git add .", targetX: 28, wind: "4 MPH ↗", hazards: [{ x: 10, w: 1.2, h: 3.4, zSpan: 3.2 }] },
+      { num: 3, par: 1, title: "Dogleg Commit Green", cmd: 'git commit -m "Commit"', targetX: 38, wind: "3 MPH ←", hazards: [{ x: 13, w: 1.2, h: 4.2, zSpan: 3.4 }] },
+      { num: 4, par: 2, title: "Island Green Branching", cmd: "git branch -M main", targetX: 50, hazards: [{ x: 12, w: 1.2, h: 3.5, zSpan: 3.2 }, { x: 28, w: 1.4, h: 5.0, zSpan: 3.6 }] },
+      { num: 5, par: 2, title: "Long Fairway Remote Setup", cmd: "git remote add origin NEED_GITHUB_URL", targetX: 62, hazards: [{ x: 15, w: 1.2, h: 4.0, zSpan: 3.2 }, { x: 36, w: 1.4, h: 5.6, zSpan: 3.6 }] },
+      { num: 6, par: 2, title: "Championship Push Pin", cmd: "git push -u origin main", targetX: 76, hazards: [{ x: 14, w: 1.2, h: 3.8, zSpan: 3.2 }, { x: 32, w: 1.4, h: 5.2, zSpan: 3.6 }, { x: 52, w: 1.5, h: 6.4, zSpan: 3.8 }] }
+    ];
+
+    let currentHoleIdx = 0;
+    let strokesCurrentHole = 1;
+    let activeSwappedPairs = 0;
+    let isPenaltyFrozen = false;
+    let shotWatchdog = null;
+
+    // 3D Scene Setup
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x06190f);
+    scene.fog = new THREE.FogExp2(0x06190f, 0.011);
+
+    const camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.05;
+    document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+    // Sunlight & Skylight
+    const sunLight = new THREE.DirectionalLight(0xfffaed, 1.8);
+    sunLight.position.set(15, 45, 30);
+    sunLight.castShadow = true;
+    sunLight.shadow.mapSize.width = 2048;
+    sunLight.shadow.mapSize.height = 2048;
+    scene.add(sunLight);
+
+    const skyFill = new THREE.HemisphereLight(0xbbf7d0, 0x052e16, 0.9);
+    scene.add(skyFill);
+
+    // Fairway Turf
+    const fairwayGeo = new THREE.PlaneGeometry(240, 60, 48, 12);
+    const fairwayMat = new THREE.MeshStandardMaterial({
+      color: 0x166534,
+      roughness: 0.85,
+      metalness: 0.05
+    });
+    const fairway = new THREE.Mesh(fairwayGeo, fairwayMat);
+    fairway.rotation.x = -Math.PI / 2;
+    fairway.position.set(35, -0.05, 0);
+    fairway.receiveShadow = true;
+    scene.add(fairway);
+
+    // Mowed Fairway Striping Pattern
+    const stripeGroup = new THREE.Group();
+    for (let x = -20; x < 100; x += 6) {
+      const stripe = new THREE.Mesh(
+        new THREE.PlaneGeometry(3, 56),
+        new THREE.MeshStandardMaterial({
+          color: 0x14532d,
+          roughness: 0.9,
+          transparent: true,
+          opacity: 0.4
+        })
+      );
+      stripe.rotation.x = -Math.PI / 2;
+      stripe.position.set(x, 0.01, 0);
+      stripe.receiveShadow = true;
+      stripeGroup.add(stripe);
+    }
+    scene.add(stripeGroup);
+
+    // Tee Box Setup (Starting at X = -8)
+    const teeBase = new THREE.Vector3(-8, 3.2, 0);
+    const teeBoxGroup = new THREE.Group();
+
+    const matMesh = new THREE.Mesh(
+      new THREE.BoxGeometry(4.0, 0.2, 3.2),
+      new THREE.MeshStandardMaterial({ color: 0x15803d, roughness: 0.9 })
+    );
+    matMesh.position.set(-8, 0.1, 0);
+    matMesh.receiveShadow = true;
+    teeBoxGroup.add(matMesh);
+
+    const postMat = new THREE.MeshStandardMaterial({ color: 0xd1d5db, roughness: 0.25, metalness: 0.85 });
+    const leftPost = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.12, 4.4, 24), postMat);
+    leftPost.position.set(-8, 2.2, -1.5);
+    leftPost.castShadow = true;
+    const rightPost = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.12, 4.4, 24), postMat);
+    rightPost.position.set(-8, 2.2, 1.5);
+    rightPost.castShadow = true;
+    teeBoxGroup.add(leftPost);
+    teeBoxGroup.add(rightPost);
+    scene.add(teeBoxGroup);
+
+    // Elastic Slingshot Bands
+    const bandMat = new THREE.LineBasicMaterial({ color: 0x22c55e, linewidth: 3 });
+    const leftBandGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-8, 4.0, -1.5), teeBase]);
+    const rightBandGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-8, 4.0, 1.5), teeBase]);
+    const leftBand = new THREE.Line(leftBandGeo, bandMat);
+    const rightBand = new THREE.Line(rightBandGeo, bandMat);
+    scene.add(leftBand);
+    scene.add(rightBand);
+
+    // Trajectory Guide Arc
+    const trajPts = [];
+    for (let i = 0; i < 45; i++) trajPts.push(new THREE.Vector3());
+    const trajGeo = new THREE.BufferGeometry().setFromPoints(trajPts);
+    const trajMat = new THREE.LineDashedMaterial({ color: 0x86efac, dashSize: 0.5, gapSize: 0.3 });
+    const trajLine = new THREE.Line(trajGeo, trajMat);
+    trajLine.visible = false;
+    scene.add(trajLine);
+
+    // Procedural Dimpled Golf Ball Texture
+    function createGolfBallTexture(cmdText) {
+      const cvs = document.createElement('canvas');
+      cvs.width = 1024;
+      cvs.height = 512;
+      const c = cvs.getContext('2d');
+
+      c.fillStyle = '#f8fafc';
+      c.fillRect(0, 0, 1024, 512);
+
+      c.fillStyle = '#e2e8f0';
+      for (let x = 12; x < 1024; x += 24) {
+        for (let y = 12; y < 512; y += 24) {
+          c.beginPath();
+          c.arc(x, y, 4.5, 0, Math.PI * 2);
+          c.fill();
+        }
+      }
+
+      c.fillStyle = '#0f172a';
+      c.fillRect(0, 150, 1024, 212);
+
+      c.strokeStyle = '#22c55e';
+      c.lineWidth = 10;
+      c.strokeRect(0, 150, 1024, 212);
+
+      c.fillStyle = '#4ade80';
+      c.font = 'bold 54px Consolas, monospace';
+      c.textAlign = 'center';
+      c.textBaseline = 'middle';
+      c.fillText(`$ ${cmdText}`, 512, 256);
+
+      return new THREE.CanvasTexture(cvs);
+    }
+
+    const ballRadius = 0.85;
+    const ballMat = new THREE.MeshStandardMaterial({
+      map: createGolfBallTexture(courseHoles[0].cmd),
+      roughness: 0.35,
+      metalness: 0.1
+    });
+    const golfBall = new THREE.Mesh(new THREE.SphereGeometry(ballRadius, 32, 32), ballMat);
+    golfBall.castShadow = true;
+    scene.add(golfBall);
+
+    // Putting Green, Flagstick & Hole Cup
+    const puttingGreen = new THREE.Group();
+
+    const greenMound = new THREE.Mesh(
+      new THREE.CylinderGeometry(4.4, 4.6, 0.22, 36),
+      new THREE.MeshStandardMaterial({ color: 0x22c55e, roughness: 0.55 })
+    );
+    greenMound.position.y = 0.11;
+    greenMound.receiveShadow = true;
+    puttingGreen.add(greenMound);
+
+    const cupRim = new THREE.Mesh(
+      new THREE.TorusGeometry(1.8, 0.12, 16, 48),
+      new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.2 })
+    );
+    cupRim.rotation.x = Math.PI / 2;
+    cupRim.position.y = 0.23;
+    puttingGreen.add(cupRim);
+
+    const cupVoid = new THREE.Mesh(
+      new THREE.CircleGeometry(1.7, 32),
+      new THREE.MeshBasicMaterial({ color: 0x03140a })
+    );
+    cupVoid.rotation.x = -Math.PI / 2;
+    cupVoid.position.y = 0.24;
+    puttingGreen.add(cupVoid);
+
+    const pin = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.04, 0.04, 5.8, 16),
+      new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.3 })
+    );
+    pin.position.set(0, 2.9, 0);
+    pin.castShadow = true;
+    puttingGreen.add(pin);
+
+    const flagMesh = new THREE.Mesh(
+      new THREE.ConeGeometry(0.9, 1.8, 3),
+      new THREE.MeshStandardMaterial({ color: 0xef4444, roughness: 0.4 })
+    );
+    flagMesh.rotation.z = Math.PI / 2;
+    flagMesh.position.set(0.9, 4.8, 0);
+    flagMesh.castShadow = true;
+    puttingGreen.add(flagMesh);
+
+    const beacon = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.3, 1.2, 50, 16, 1, true),
+      new THREE.MeshBasicMaterial({
+        color: 0x4ade80,
+        transparent: true,
+        opacity: 0.2,
+        side: THREE.DoubleSide
+      })
+    );
+    beacon.position.y = 25;
+    puttingGreen.add(beacon);
+
+    scene.add(puttingGreen);
+
+    // Sand Bunker Hazards
+    const hazardGroup = new THREE.Group();
+    scene.add(hazardGroup);
+    let activeHazards = [];
+
+    function rebuildHazards() {
+      while (hazardGroup.children.length > 0) {
+        hazardGroup.remove(hazardGroup.children[0]);
+      }
+      activeHazards = [];
+
+      const currentHole = courseHoles[currentHoleIdx];
+      currentHole.hazards.forEach(cfg => {
+        const wallMesh = new THREE.Mesh(
+          new THREE.BoxGeometry(cfg.w, cfg.h, cfg.zSpan),
+          new THREE.MeshStandardMaterial({
+            color: 0xd97706,
+            roughness: 0.9,
+            metalness: 0.0
+          })
+        );
+        wallMesh.position.set(cfg.x, cfg.h / 2, 0);
+        wallMesh.castShadow = true;
+        hazardGroup.add(wallMesh);
+
+        const sandBed = new THREE.Mesh(
+          new THREE.BoxGeometry(cfg.w + 3.0, 0.08, cfg.zSpan + 2.0),
+          new THREE.MeshStandardMaterial({ color: 0xfde68a, roughness: 0.95 })
+        );
+        sandBed.position.set(cfg.x, 0.04, 0);
+        sandBed.receiveShadow = true;
+        hazardGroup.add(sandBed);
+
+        activeHazards.push({ mesh: wallMesh, x: cfg.x, h: cfg.h });
+      });
+    }
+
+    // Ball Physics State
+    const pos = teeBase.clone();
+    const vel = new THREE.Vector3();
+    let isDragging = false;
+    let isAirborne = false;
+    let isDroppingInCup = false;
+
+    function resetToTee() {
+      if (shotWatchdog) clearTimeout(shotWatchdog);
+      pos.copy(teeBase);
+      vel.set(0, 0, 0);
+      isAirborne = false;
+      isDragging = false;
+      isDroppingInCup = false;
+      golfBall.scale.set(1, 1, 1);
+      golfBall.position.copy(teeBase);
+      golfBall.rotation.set(0, 0, 0);
+      trajLine.visible = false;
+      updateBands();
+      document.getElementById('rf-vel').textContent = '0.0 MPH';
+      document.getElementById('rf-elev').textContent = '+0.0 FT';
+    }
+
+    // TRIGGER PENALTY: Cascades to the next line pair (1st&last, 2nd&2nd-last, etc.)
+    function triggerPenalty(reason) {
+      if (isPenaltyFrozen) return;
+      isPenaltyFrozen = true;
+      activeSwappedPairs++;
+      strokesCurrentHole++;
+
+      vscode.postMessage({
+        type: 'CODE_SHUFFLE_PENALTY',
+        reason: reason
+      });
+
+      soundBuzzerPenalty();
+
+      const overlay = document.getElementById('penalty-overlay');
+      document.getElementById('penalty-title').textContent = `⚠️ MISS PENALTY (PAIR #${activeSwappedPairs} SWAPPED)`;
+      document.getElementById('penalty-sub').textContent = `${reason.toUpperCase()} • SINK HOLE TO RESTORE ALL CODE`;
+      overlay.style.display = 'flex';
+
+      setTimeout(() => {
+        overlay.style.display = 'none';
+        isPenaltyFrozen = false;
+        resetToTee();
+        updateHUD();
+      }, 1500);
+    }
+
+    function updateBands() {
+      const p = golfBall.position;
+      leftBand.geometry.setFromPoints([new THREE.Vector3(-8, 4.0, -1.5), p]);
+      rightBand.geometry.setFromPoints([new THREE.Vector3(-8, 4.0, 1.5), p]);
+    }
+
+    function updateTrajectoryPreview(pullVec) {
+      const simPos = teeBase.clone();
+      const simVel = pullVec.clone().multiplyScalar(0.27);
+      const pts = [];
+      let hazardAhead = false;
+
+      for (let i = 0; i < 45; i++) {
+        simVel.y -= 0.015;
+        simPos.add(simVel);
+        pts.push(simPos.clone());
+
+        activeHazards.forEach(h => {
+          if (Math.abs(simPos.x - h.x) < 0.9 && simPos.y <= h.h + 0.3) {
+            hazardAhead = true;
+          }
+        });
+      }
+
+      trajLine.geometry.setFromPoints(pts);
+      trajLine.computeLineDistances();
+      trajMat.color.setHex(hazardAhead ? 0xef4444 : 0x86efac);
+      trajLine.visible = true;
+
+      const pathEl = document.getElementById('rf-path');
+      pathEl.textContent = hazardAhead ? 'BUNKER_INTERCEPT' : 'CLEAR';
+      pathEl.className = hazardAhead ? 'val-warning' : 'val-accent';
+    }
+
+    function updateHUD() {
+      if (currentHoleIdx < courseHoles.length) {
+        const hole = courseHoles[currentHoleIdx];
+        document.getElementById('hud-par').textContent = `HOLE ${hole.num} • PAR ${hole.par}`;
+        document.getElementById('stage-title').textContent = `Drive ${hole.num}: ${hole.title}`;
+        document.getElementById('instruction').textContent = `Pull back and drive [ ${hole.cmd} ] down the fairway`;
+        document.getElementById('val-pin').textContent = `${(hole.targetX - (-8)).toFixed(1)} YDS`;
+        document.getElementById('val-strokes').textContent = strokesCurrentHole;
+        document.getElementById('val-hazards').textContent = `${hole.hazards.length} Bunkers`;
+
+        const swapEl = document.getElementById('val-swapped-count');
+        if (activeSwappedPairs > 0) {
+          swapEl.textContent = `${activeSwappedPairs} PAIRS`;
+          swapEl.style.color = '#ef4444';
+        } else {
+          swapEl.textContent = '0 (CLEAN)';
+          swapEl.style.color = '#4ade80';
+        }
+
+        const integrityEl = document.getElementById('rf-integrity');
+        if (activeSwappedPairs > 0) {
+          integrityEl.textContent = `CORRUPTED (${activeSwappedPairs} SWAPPED)`;
+          integrityEl.className = 'val-warning';
+        } else {
+          integrityEl.textContent = '100% (NORMAL)';
+          integrityEl.className = 'val-accent';
+        }
+
+        ballMat.map = createGolfBallTexture(hole.cmd);
+        ballMat.needsUpdate = true;
+        rebuildHazards();
+      } else {
+        document.getElementById('hud-par').textContent = 'CHAMPION • -6';
+        document.getElementById('stage-title').textContent = 'Trophy Presentation: Tournament Won!';
+        document.getElementById('instruction').textContent = 'All 6 drives holed out. Repository synchronized and all code restored.';
+        document.getElementById('val-pin').textContent = '0.0 YDS';
+        document.getElementById('val-hazards').textContent = 'None';
+        document.getElementById('val-swapped-count').textContent = '0 (RESTORED)';
+        document.getElementById('val-swapped-count').style.color = '#4ade80';
+        document.getElementById('rf-integrity').textContent = '100% (RESTORED)';
+        document.getElementById('rf-integrity').className = 'val-accent';
+      }
+    }
+
+    // Raycast Mouse Swing Interaction
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+    const dragPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
+
+    window.addEventListener('mousedown', (e) => {
+      if (isAirborne || isPenaltyFrozen || currentHoleIdx >= courseHoles.length) return;
+      mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+      mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+      raycaster.setFromCamera(mouse, camera);
+
+      if (raycaster.intersectObject(golfBall).length > 0) {
+        isDragging = true;
+        playTone(380, 0.08, 'triangle');
+      }
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (!isDragging) return;
+      mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+      mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+      raycaster.setFromCamera(mouse, camera);
+
+      const hit = new THREE.Vector3();
+      raycaster.ray.intersectPlane(dragPlane, hit);
+
+      let offset = hit.clone().sub(teeBase);
+      if (offset.length() > 5.0) offset.setLength(5.0);
+
+      pos.copy(teeBase).add(offset);
+      golfBall.position.copy(pos);
+      updateBands();
+      updateTrajectoryPreview(teeBase.clone().sub(pos));
+    });
+
+    window.addEventListener('mouseup', () => {
+      if (!isDragging) return;
+      isDragging = false;
+      trajLine.visible = false;
+
+      const pull = teeBase.clone().sub(pos);
+      vel.copy(pull).multiplyScalar(0.27);
+
+      isAirborne = true;
+      soundGolfDrive();
+
+      // Watchdog failsafe timer
+      if (shotWatchdog) clearTimeout(shotWatchdog);
+      shotWatchdog = setTimeout(() => {
+        if (isAirborne && !isDroppingInCup) {
+          triggerPenalty("Time Limit / Lost Ball");
+        }
+      }, 4500);
+    });
+
+    // SINK IN HOLE: Reverts ALL swapped lines back to normal
+    function sinkInHole() {
+      isDroppingInCup = true;
+      soundCupRattle();
+      activeSwappedPairs = 0; // Clears all corruption counts
+
+      const activeCmd = courseHoles[currentHoleIdx].cmd;
+      vscode.postMessage({
+        type: 'EXECUTE_COMMAND',
+        cmd: activeCmd
+      });
+
+      currentHoleIdx++;
+      strokesCurrentHole = 1;
+      updateHUD();
+      setTimeout(resetToTee, 850);
+    }
+
+    // Animation & Physics Frame Loop
+    function animate() {
+      requestAnimationFrame(animate);
+
+      if (isAirborne) {
+        document.getElementById('rf-vel').textContent = `${(vel.length() * 22).toFixed(1)} MPH`;
+        document.getElementById('rf-elev').textContent = `+${(pos.y * 3.28).toFixed(1)} FT`;
+      }
+
+      if (currentHoleIdx < courseHoles.length) {
+        const hole = courseHoles[currentHoleIdx];
+        puttingGreen.position.x += (hole.targetX - puttingGreen.position.x) * 0.05;
+      }
+
+      // Ball Motion
+      if (isDroppingInCup) {
+        pos.y -= 0.08;
+        golfBall.scale.multiplyScalar(0.93);
+        golfBall.position.copy(pos);
+      } else if (isAirborne) {
+        vel.y -= 0.015;
+        pos.add(vel);
+        golfBall.position.copy(pos);
+        golfBall.rotation.z -= vel.x * 0.08;
+
+        leftBand.geometry.setFromPoints([new THREE.Vector3(-8, 4.0, -1.5), teeBase]);
+        rightBand.geometry.setFromPoints([new THREE.Vector3(-8, 4.0, 1.5), teeBase]);
+
+        // Bunker Hazard Collision -> Penalty Swap!
+        activeHazards.forEach(h => {
+          const dx = Math.abs(pos.x - h.x);
+          if (dx < 1.2 && pos.y <= h.h + 0.4) {
+            soundSandHit();
+            triggerPenalty("Hit Bunker Hazard");
+          }
+        });
+
+        // Cup Drop Capture -> Clean Hit & Restores All Swaps!
+        const distToPin = Math.abs(pos.x - puttingGreen.position.x);
+        if (distToPin < 2.0 && pos.y <= 1.4 && pos.y >= -0.3) {
+          sinkInHole();
+          return;
+        }
+
+        // Fairway Turf Bounce & Roll
+        if (pos.y <= ballRadius) {
+          pos.y = ballRadius;
+          vel.y = -vel.y * 0.32;
+          vel.x *= 0.82;
+          if (Math.abs(vel.y) > 0.03) playTone(95, 0.04, 'triangle');
+
+          // If ball stops on grass without entering cup -> Miss Penalty!
+          if (Math.abs(vel.y) < 0.02 && Math.abs(vel.x) < 0.04) {
+            triggerPenalty("Missed Pin / Ball Stopped");
+          }
+        }
+
+        // Out of Bounds Penalty
+        if (pos.x > 105 || pos.y < -2 || pos.x < -18) {
+          triggerPenalty("Out Of Bounds");
+        }
+      }
+
+      // Television Broadcast Camera Tracking
+      if (currentHoleIdx < courseHoles.length) {
+        const hole = courseHoles[currentHoleIdx];
+        const midX = (-8 + hole.targetX) / 2;
+        const targetCamZ = 25 + (hole.targetX * 0.32);
+
+        camera.position.x += (midX - camera.position.x) * 0.06;
+        camera.position.y += (8.0 - camera.position.y) * 0.06;
+        camera.position.z += (targetCamZ - camera.position.z) * 0.06;
+        camera.lookAt(midX, 4.2, 0);
+      }
+
+      renderer.render(scene, camera);
+    }
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    updateHUD();
+    resetToTee();
+    animate();
+  </script>
+</body>
+</html>
