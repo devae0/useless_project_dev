@@ -134,7 +134,7 @@ flowchart TD
     K --> L{Lifecycle Stage}
     L -->|More Stages| C
     L -->|git push Completed| M[Deployment Successful]
-    ```
+ ```
 
 
 
@@ -147,8 +147,16 @@ flowchart TD
 
 
 ## Team Contributions
-- [DEVASANGEETHI S]: [Specific contributions]
-- [ANNMARIA A ARAMPULICKAL]: [Specific contributions]
+- DEVASANGEETHI S: - Designed the core system architecture, extension lifecycle, and asynchronous host-to-webview communication bridge.
+  - Implemented the cascading line transposition penalty system using the VS Code `TextEditor` API to programmatically swap code lines upon missed shots.
+  - Built the terminal command orchestration engine to sequentially trigger `git init`, `git add`, `git commit`, and `git push` in the user's active terminal.
+  - Engineered the state management and redemption logic to safely restore original source code upon successful putts.
+  - Handled extension configuration, packaging (`.vsix`), Git repository management, and technical documentation.
+
+- ANNMARIA A ARAMPULICKAL: - Designed and rendered the 3D fairway environment, course layout, and visual materials using Three.js.
+  - Implemented the slingshot drag-and-aim mechanics along with the cup collision physics.
+  - Developed procedural sound effects using the Web Audio API for interactive swing, ball roll, and penalty audio feedback.
+  - Structured the Webview UI overlay, including scorecard tracking and shot telemetry displays.
 
 ---
 Made with ❤️ at TinkerHub Useless Projects
