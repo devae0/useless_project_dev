@@ -87,7 +87,7 @@ For Software:
 *Automated Git command execution in the integrated terminal and full code restoration upon sinking a putt.*
 
 # Diagrams
-![Git Golf Architecture and Workflow](images/Architecture Diagram.png)
+![Git Golf Architecture and Workflow](images/Architecture%20Diagram.png)
 
 ### Architecture & System Workflow Explanation
 
