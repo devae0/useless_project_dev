@@ -1,0 +1,25 @@
+{
+  "name": "git-golf",
+  "displayName": "Git Golf",
+  "description": "Gamified git pushing using an Angry Birds slingshot mechanic",
+  "version": "1.0.0",
+  "publisher": "git-golf-team",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/devae0/useless_project_dev.git"
+  },
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": ["Other"],
+  "activationEvents": [],
+  "main": "./extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "gitGolf.play",
+        "title": "Git Golf: Play to Push"
+      }
+    ]
+  }
+}
