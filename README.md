@@ -57,8 +57,8 @@ For Software:
 
 **Option B: From Source (For Developers)**
 ```bash
-git clone [https://github.com/your-username/git-golf.git](https://github.com/your-username/git-golf.git)
-cd git-golf
+git clone [https://github.com/your-username/git-golf.git](https://github.com/devae0/useless_project_dev.git)
+cd useless_project_dev
 npm install
 ```
 
